@@ -423,7 +423,7 @@ static string read_target_desc(const char* file_name) {
   return ss.str();
 }
 
-static const char* target_description_name(uint32_t cpu_features) {
+static const char* target_description_name(uint32_t cpu_features, bool target_wine) {
   // This doesn't scale, but it's what gdb does...
   switch (cpu_features) {
     case 0:
@@ -431,9 +431,9 @@ static const char* target_description_name(uint32_t cpu_features) {
     case GdbConnection::CPU_X86_64:
       return "amd64-linux.xml";
     case GdbConnection::CPU_AVX:
-      return "i386-avx-linux.xml";
+      return target_wine ? "i386-avx-wine.xml" : "i386-avx-linux.xml";
     case GdbConnection::CPU_X86_64 | GdbConnection::CPU_AVX:
-      return "amd64-avx-linux.xml";
+      return target_wine ? "amd64-avx-wine.xml" : "amd64-avx-linux.xml";
     case GdbConnection::CPU_AARCH64:
       return "aarch64-core.xml";
     default:
@@ -528,7 +528,7 @@ bool GdbConnection::xfer(const char* name, char* args) {
     string target_desc =
         read_target_desc((strcmp(annex, "") && strcmp(annex, "target.xml"))
                              ? annex
-                             : target_description_name(cpu_features_));
+                             : target_description_name(cpu_features_, features().target_wine));
     write_xfer_response(target_desc.c_str(), target_desc.size(), offset, len);
     return false;
   }
@@ -679,7 +679,6 @@ bool GdbConnection::query(char* payload) {
                  ";qXfer:libraries:read+"
                  ";qXfer:features:read+"
                  ";qXfer:auxv:read+"
-                 ";qXfer:exec-file:read+"
                  ";qXfer:siginfo:read+"
                  ";qXfer:siginfo:write+"
                  ";multiprocess+"
@@ -687,6 +686,9 @@ bool GdbConnection::query(char* payload) {
                  ";swbreak+"
                  ";ConditionalBreakpoints+"
                  ";vContSupported+";
+    if (!features().target_wine) {
+      supported << ";qXfer:exec-file:read+";
+    }
     if (features().reverse_execution) {
       supported << ";ReverseContinue+"
                    ";ReverseStep+";
