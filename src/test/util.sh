@@ -220,6 +220,15 @@ function skip_if_32_bit {
     fi
 }
 
+function skip_if_32_bit_rr_with_64_bit_shell {
+    if [[ "$(file $RESOURCE_PATH/lib/rr/librrpage.so | grep 32-bit -c)" == "1" ]]
+       [[ "$(file -L $(which sh) | grep 64-bit -c)" == "1" ]];
+    then
+        echo NOTE: Skipping 32-bit test because of 64-bit shell "'$TESTNAME'"
+        exit 0
+    fi
+}
+
 # If the test is causing an unrealistic failure when the syscallbuf is
 # enabled, skip it.  This better be a temporary situation!
 function skip_if_syscall_buf {
