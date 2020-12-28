@@ -3448,12 +3448,61 @@ static void create_mapping(Task *t, AutoRemoteSyscalls &remote, const KernelMapp
                real_file_name, device, inode, nullptr, &km);
 }
 
+#if defined(__i386__)
+  struct prctl_mm_map64 {
+    __u64   start_code;             /* code section bounds */
+    __u64   end_code;
+    __u64   start_data;             /* data section bounds */
+    __u64   end_data;
+    __u64   start_brk;              /* heap for brk() syscall */
+    __u64   brk;
+    __u64   start_stack;            /* stack starts at */
+    __u64   arg_start;              /* command line arguments bounds */
+    __u64   arg_end;
+    __u64   env_start;              /* environment variables bounds */
+    __u64   env_end;
+    __u64   *auxv;                  /* auxiliary vector */
+    __u64   *auxv_2;
+    __u32   auxv_size;              /* vector size */
+    __u32   exe_fd;                 /* /proc/$pid/exe link file */
+  };
+#endif
+
 static void apply_mm_map(AutoRemoteSyscalls& remote, const struct prctl_mm_map& map)
 {
-  AutoRestoreMem remote_mm_map(remote, (const uint8_t*)&map, sizeof(map));
-  int result = remote.syscall(syscall_number_for_prctl(remote.task()->arch()), PR_SET_MM,
-                            PR_SET_MM_MAP, remote_mm_map.get().as_int(),
-                            sizeof(map));
+  void* pmap = (void*)&map;
+  int pmap_size = sizeof(map);
+  unsigned int expected_size = 0;
+
+  int result = prctl(PR_SET_MM, PR_SET_MM_MAP_SIZE, &expected_size);
+  if (result != 0) {
+    expected_size = sizeof(struct prctl_mm_map);
+    LOG(warn) << "Failed to get expected MM_MAP_SIZE. Error was " << errno_name(-result) << ". Using default size " << expected_size;
+  }
+
+#if defined(__i386__)
+  struct prctl_mm_map64 map64;
+  if (expected_size != sizeof(struct prctl_mm_map)) {
+    if (expected_size == sizeof(struct prctl_mm_map64)) {
+      LOG(warn) << "Kernel expects different sized MM_MAP. Using prctl_mm_map64.";
+      memcpy(&map64, &map, sizeof(map));
+      map64.auxv = map.auxv;
+      map64.auxv_2 = map.auxv;
+      map64.auxv_size = map.auxv_size;
+      map64.exe_fd = map.exe_fd;
+
+      pmap = &map64;
+      pmap_size = sizeof(map64);
+    }  else {
+      FATAL() << "Kernel expects MM_MAP of size " << expected_size;
+    }
+  }
+#endif
+
+  AutoRestoreMem remote_mm_map(remote, (const uint8_t*)pmap, pmap_size);
+  result = remote.syscall(syscall_number_for_prctl(remote.task()->arch()), PR_SET_MM,
+                          PR_SET_MM_MAP, remote_mm_map.get().as_int(),
+                          pmap_size);
   if (result == -EINVAL &&
       (map.start_brk <= map.end_data || map.brk <= map.end_data)) {
     CLEAN_FATAL() << "The linux kernel prohibits duplication of this task's memory map," <<
