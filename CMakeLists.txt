@@ -1583,10 +1583,11 @@ if(BUILD_TESTS)
     set(TEST_MONITOR_DEFAULT_TIMEOUT 120)
   endif()
 
+  # The real timeouts are handled by test-monitor
+  set(CTEST_TEST_TIMEOUT 1000)
+
   function(configure_test test)
-    # The real timeouts are handled by test-monitor
-    set_tests_properties(${test}
-      PROPERTIES FAIL_REGULAR_EXPRESSION "FAILED" TIMEOUT 1000)
+    set_tests_properties(${test} PROPERTIES FAIL_REGULAR_EXPRESSION "FAILED")
   endfunction(configure_test)
 
   function(rr_add_test test command testname syscallbuf bin_dir timeout)
