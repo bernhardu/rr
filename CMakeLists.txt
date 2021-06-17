@@ -1344,6 +1344,7 @@ set(TESTS_WITH_PROGRAM
 #
 # Alphabetical, please.
 set(TESTS_WITHOUT_PROGRAM
+  asan_record_replay
   async_signal_syscalls_100
   async_signal_syscalls_1000
   bad_breakpoint

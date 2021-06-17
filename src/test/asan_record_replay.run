@@ -1,0 +1,17 @@
+source `dirname $0`/util.sh
+
+cat <<EOF > asan-test.c
+#include <stdio.h>
+void main() {
+  printf("EXIT-SUCCESS\n");
+}
+EOF
+
+if [[ "$bitness" == "_32" ]]; then ARCHFLAG=-m32; fi
+cc -fsanitize=address $ARCHFLAG -c -o asan-test.o asan-test.c && \
+cc -fsanitize=address $ARCHFLAG    -o asan-test   asan-test.o
+(($? != 0)) && { echo NOTE: Skipping "'$TESTNAME'" because build failed; exit 0; }
+
+just_record ./asan-test
+replay
+check EXIT-SUCCESS
