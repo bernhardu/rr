@@ -89,6 +89,15 @@ static int open_device(void) {
                   device_name, qc.id, qc.type, qc.name);
   }
 
+  struct v4l2_ext_controls ecs;
+  memset(&ecs, 0, sizeof(ecs));
+  ret = ioctl(fd, VIDIOC_TRY_EXT_CTRLS, &ecs);
+  if (ret < 0) {
+    atomic_printf("%s does not support VIDIOC_TRY_EXT_CTRLS\n", device_name);
+  } else {
+    atomic_printf("%s VIDIOC_TRY_EXT_CTRLS with ecs.count=0 is supported\n", device_name);
+  }
+
   return fd;
 }
 
