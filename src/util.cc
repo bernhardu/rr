@@ -1983,6 +1983,7 @@ string get_cpu_lock_file() {
  */
 int choose_cpu(BindCPU bind_cpu, ScopedFd &cpu_lock_fd_out) {
   if (bind_cpu == UNBOUND_CPU) {
+    fprintf(stderr, "%s:%d: bind_cpu=%d\n", __FUNCTION__, __LINE__, bind_cpu); fflush(stderr);
     return -1;
   }
 
@@ -2053,6 +2054,7 @@ int choose_cpu(BindCPU bind_cpu, ScopedFd &cpu_lock_fd_out) {
       (void)fcntl(cpu_lock_fd_out, F_SETLK, &lock);
       // Ignore fcntl errors - nothing we can do
     }
+    fprintf(stderr, "%s:%d: bind_cpu=%d\n", __FUNCTION__, __LINE__, bind_cpu); fflush(stderr);
     return bind_cpu;
   }
 
@@ -2071,6 +2073,7 @@ int choose_cpu(BindCPU bind_cpu, ScopedFd &cpu_lock_fd_out) {
         // Try to acquire the lock for this CPU
         int err = fcntl(cpu_lock_fd_out, F_SETLK, &lock);
         if (err == 0) {
+          fprintf(stderr, "%s:%d: bind_cpu=%d cpu=%d cpus.size()=%ld\n", __FUNCTION__, __LINE__, bind_cpu, cpu, cpus.size()); fflush(stderr);
           return cpu;
         }
         else if (err == -1) {
@@ -2084,7 +2087,9 @@ int choose_cpu(BindCPU bind_cpu, ScopedFd &cpu_lock_fd_out) {
 
   // Didn't work - just use a random CPU
   cpu_lock_fd_out.close();
-  return cpus[random() % cpus.size()];
+  auto cpu = cpus[random() % cpus.size()];
+  fprintf(stderr, "%s:%d: bind_cpu=%d cpu=%d cpus.size()=%ld\n", __FUNCTION__, __LINE__, bind_cpu, cpu, cpus.size()); fflush(stderr);
+  return cpu;
 }
 
 uint32_t crc32(uint32_t crc, unsigned char* buf, size_t len) {
