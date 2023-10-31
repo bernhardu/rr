@@ -10,7 +10,15 @@ function generate(platform::Platform)
     echo "--- Print CPU information"
     # These machines have multiple cores. However, it should be sufficient to
     # just print the information for one of the cores.
-    sed -n '1,/^\$\$/p' /proc/cpuinfo
+    cat /proc/cpuinfo
+    echo "xxx"
+    lscpu
+    echo "xxx"
+    echo JULIA_CPU_THREADS=\$\${JULIA_CPU_THREADS:?}
+    echo nproc=\$\$(nproc)
+    echo "lscpu: \$\$(lscpu --extended=CORE | tail -n1)"
+    echo "xxx"
+    exit 0
 
     if [[ "$(platform.arch)" == "aarch64" ]]; then
       echo "--- Patch glibc host environment"
