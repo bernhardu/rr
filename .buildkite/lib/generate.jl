@@ -10,7 +10,15 @@ function generate(platform::Platform)
     echo "--- Print CPU information"
     # These machines have multiple cores. However, it should be sufficient to
     # just print the information for one of the cores.
-    sed -n '1,/^\$\$/p' /proc/cpuinfo
+    echo "xxx"
+    cat /proc/cpuinfo
+    echo "xxx"
+    lscpu
+    echo "xxx"
+    echo JULIA_CPU_THREADS=\$\${JULIA_CPU_THREADS:?}
+    echo nproc=\$\$(nproc)
+    echo "lscpu: \$\$(lscpu --extended=CORE | tail -n1)"
+    echo "xxx"
 
     if [[ "$(platform.arch)" == "aarch64" ]]; then
       echo "--- Patch glibc host environment"
@@ -32,7 +40,11 @@ function generate(platform::Platform)
     mkdir -p Testing/Temporary
     mv ../.buildkite/CTestCostData.txt Testing/Temporary
     if bin/rr record bin/simple; then
-      julia ../.buildkite/capture_tmpdir.jl ctest --output-on-failure -j\$\$(expr \$\${JULIA_CPU_THREADS:?} - 2)
+      if [ "\$\${JULIA_CPU_THREADS:?}" == "128" ]; then
+        taskset --cpu-list 0-63 julia ../.buildkite/capture_tmpdir.jl ctest --output-on-failure -j63
+      else
+        julia ../.buildkite/capture_tmpdir.jl ctest --output-on-failure -j\$\$(expr \$\${JULIA_CPU_THREADS:?} - 2)
+      fi
     else
       echo -n -e "rr seems not able to run, skipping running test suite.\nhostname: "
       hostname
