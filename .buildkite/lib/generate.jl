@@ -32,12 +32,45 @@ function generate(platform::Platform)
     mkdir -p Testing/Temporary
     mv ../.buildkite/CTestCostData.txt Testing/Temporary
     if bin/rr record bin/simple; then
-      julia ../.buildkite/capture_tmpdir.jl ctest --output-on-failure -j\$\$(expr \$\${JULIA_CPU_THREADS:?} - 2)
+      if [ "\$\${JULIA_CPU_THREADS:?}" == "128" ]; then
+        #taskset --cpu-list 0-63 julia ../.buildkite/capture_tmpdir.jl ctest --output-on-failure -j64
+        taskset --cpu-list 0-15 julia ../.buildkite/capture_tmpdir.jl ctest -R vsyscall_reverse_next-32-no-syscallbuf &
+      else
+        julia ../.buildkite/capture_tmpdir.jl ctest --output-on-failure -j\$\$(expr \$\${JULIA_CPU_THREADS:?} - 2)
+      fi
     else
       echo -n -e "rr seems not able to run, skipping running test suite.\nhostname: "
       hostname
       exit 1
     fi
+    sleep 10s
+    ps aux
+    sleep 10s
+    ps aux
+    sleep 10s
+    ps aux
+    sleep 10s
+    ps aux
+    sleep 10s
+    ps aux
+    sleep 10s
+    ps aux
+    sleep 10s
+    ps aux
+    sleep 10s
+    ps aux
+    sleep 10s
+    ps aux
+    sleep 10s
+    ps aux
+    sleep 10s
+    ps aux
+    sleep 10s
+    ps aux
+    sleep 10s
+    ps aux
+    sleep 10s
+    ps aux
     """
     job_label = "Test $(platform.arch)"
     job_key = "test-$(platform.arch)"
