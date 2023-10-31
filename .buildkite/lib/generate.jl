@@ -29,10 +29,12 @@ function generate(platform::Platform)
     make --output-sync -j\$\${JULIA_CPU_THREADS:?}
 
     echo "--- Test"
+    echo JULIA_CPU_THREADS=\$\${JULIA_CPU_THREADS:?}
+    echo nproc=\$\$(nproc)
     mkdir -p Testing/Temporary
     mv ../.buildkite/CTestCostData.txt Testing/Temporary
     if bin/rr record bin/simple; then
-      julia ../.buildkite/capture_tmpdir.jl ctest --output-on-failure -j\$\$(expr \$\${JULIA_CPU_THREADS:?} - 2)
+      julia ../.buildkite/capture_tmpdir.jl ctest --output-on-failure -j\$\$(expr \$\${JULIA_CPU_THREADS:?} / 2 - 2)
     else
       echo -n -e "rr seems not able to run, skipping running test suite.\nhostname: "
       hostname
